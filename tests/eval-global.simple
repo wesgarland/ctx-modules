@@ -1,0 +1,20 @@
+/**
+ * @file     eval-global.simple
+ *           Basic test to ensure that context global and outer global don't leak via eval
+ *
+ * @author   Wes Garland, wes@distributive.network
+ * @date     Feb 2023
+ */
+'use strict';
+const vm = require('vm');
+const ctx = require('../ctx-module').makeNodeProgramContext();
+
+global.realGlobal = true;
+
+const evalFun = vm.runInContext(`(function evalFun() {
+  console.log('running test..');
+  if (eval('global.realGlobal'))
+    throw new Error('test failed - new context saw real global (' + global.realGlobal + ')');
+})`, ctx);
+
+evalFun();

@@ -54,7 +54,7 @@ Factory function which creates a fresh context suitable for running NodeJS progr
 modules such as fs, os, vm, path, process, tty, etc, are linked from the calling context.
 
 ### contextName
-optional strings which specifies the name of the context
+optional string which specifies the name of the context
 
 ### moreModules
 optional object shaped like moduleCache which can inject modules from the outer context. Each property

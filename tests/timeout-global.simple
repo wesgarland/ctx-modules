@@ -1,0 +1,20 @@
+/**
+ * @file     timeout-global.simple
+ *           Basic test to ensure that context global and outer global don't leak via setTimeout
+ *
+ * @author   Wes Garland, wes@distributive.network
+ * @date     Feb 2023
+ */
+'use strict';
+const vm = require('vm');
+const ctx = require('../ctx-module').makeNodeProgramContext();
+
+global.realGlobal = true;
+
+const timeoutFun = vm.runInContext(`(function timeoutFun() {
+  console.log('running test..');
+  if (global.realGlobal)
+    throw new Error('test failed - new context saw real global (' + global.realGlobal + ')');
+})`, ctx);
+
+setTimeout(timeoutFun);

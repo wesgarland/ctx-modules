@@ -1,0 +1,48 @@
+#! /usr/bin/env node
+/**
+ * @file     separate-dcp-client.simple
+ *           Basic test to ensure that dcp-client configs etc don't leak across contexts. Creates
+ *           a normal and two ctx-module copies of dcp-client and pokes at their guts a bit.
+ *
+ * @author   Wes Garland, wes@distributive.network
+ * @date     Feb 2023
+ */
+'use strict';
+const vm = require('vm');
+const assert = require('assert');
+
+const ctx1 = require('../ctx-module').makeNodeProgramContext();
+const ctx2 = require('../ctx-module').makeNodeProgramContext();
+
+const dcpClient = require('dcp-client');
+const dcpClient1 = vm.runInContext('require("dcp-client")', ctx1);
+const dcpClient2 = vm.runInContext('require("dcp-client")', ctx2);
+
+async function main()
+{
+  const ctx0 = global;
+  
+  await dcpClient.init();
+  await dcpClient1.init();
+  await dcpClient2.init();
+  
+  if (ctx1.global.dcpConfig === ctx0.global.dcpConfig)
+    throw new Error('outer and inner context #1 have same dcpConfig object!');
+  if (ctx1.global.dcpConfig === ctx2.global.dcpConfig)
+    throw new Error('both inner contexts have same the dcpConfig object!');
+
+  ctx1.dcpConfig.scheduler.location.hostname += 'AAA';
+  if (ctx1.dcpConfig.scheduler.location.href === ctx2.dcpConfig.scheduler.location.href)
+    throw new Error('mutating dcpConfig.scheduler.location in one context affected the other!');
+  assert(ctx0.dcpConfig.scheduler.location.constructor.name === 'dcpUrl$$DcpURL');
+  assert(ctx1.dcpConfig.scheduler.location.constructor.name === 'dcpUrl$$DcpURL');
+  assert(ctx2.dcpConfig.scheduler.location.constructor.name === 'dcpUrl$$DcpURL');
+
+  assert(ctx0.dcpConfig.scheduler.location.constructor !== ctx1.dcpConfig.scheduler.location.constructor);
+  assert(ctx2.dcpConfig.scheduler.location.constructor !== ctx1.dcpConfig.scheduler.location.constructor);
+
+  assert(ctx1.global.URL === ctx2.global.URL); /* same because shared when making node program context */
+  assert(ctx1.global.XMLHttpRequest !== ctx2.global.XMLHttpRequest);
+}
+
+main().catch(console.error).finally(process.exit);

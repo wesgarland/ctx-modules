@@ -1,0 +1,25 @@
+{
+  "name": "ctx-module",
+  "version": "1.0.0",
+  "description": "Load node modules into an alternate context",
+  "main": "ctx-module.js",
+  "scripts": {
+    "test": "peter tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wesgarland/ctx-module.git"
+  },
+  "keywords": [
+    "commonjs",
+    "modules",
+    "require",
+    "loader"
+  ],
+  "author": "Wes Garland, Distributive Corp.",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wesgarland/ctx-module/issues"
+  },
+  "homepage": "https://github.com/wesgarland/ctx-module#readme"
+}

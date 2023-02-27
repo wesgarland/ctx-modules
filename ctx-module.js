@@ -325,7 +325,7 @@ CtxModule.from = function ctxModuleFrom(ctx, exports)
 {
   const module = new CtxModule(ctx);
 
-  if (typeof module.exports !== 'object')
+  if (typeof exports !== 'object')
     module.exports = exports; /* needed for exports which are functions */
   else
   {
@@ -388,25 +388,16 @@ exports.makeNodeProgramContext = function makeNodeProgramContext(contextName, mo
     name: contextName,
   });
 
-  const moduleCache = {
-    os:               CtxModule.from(ctx, require('os')),
-    fs:               CtxModule.from(ctx, require('fs')),
-    vm:               CtxModule.from(ctx, vmModuleExportsFactory(ctx)),
-    path:             CtxModule.from(ctx, require('path')),
-    process:          CtxModule.from(ctx, require('process'), true),
-    tty:              CtxModule.from(ctx, require('tty')),
-    child_process:    CtxModule.from(ctx, require('child_process')),
-    perf_hooks:       CtxModule.from(ctx, require('perf_hooks')),
-    crypto:           CtxModule.from(ctx, require('crypto')),
-    http:             CtxModule.from(ctx, require('http')),
-    https:            CtxModule.from(ctx, require('https')),
-  };
+  const moduleCache = {};
+  moduleCache.vm = CtxModule.from(ctx, vmModuleExportsFactory(ctx));
+  moduleCache.module = new CtxModule(ctx, 'module', moduleCache); /* ctor magic knows how to make exports */
 
-  /* Create the module module - ctor magic knows how to make exports */
-  moduleCache.module = new CtxModule(ctx, 'module', moduleCache);
+  require('module').builtinModules.filter(cnId => /^[a-z]/.test(cnId)).forEach((cnId) => {
+    if (!moduleCache[cnId] && cnId !== 'sys')
+      moduleCache[cnId] = CtxModule.from(ctx, require(cnId));
+  });
 
-  /* Create the program module and initialize the context's global object */
-  ctx.module         = new CtxModule(ctx, __filename, moduleCache);
+  ctx.module         = new CtxModule(ctx, require.main.filename, moduleCache);
   ctx.global         = ctx;
   ctx.require        = ctx.module.require;
   ctx.require.main   = ctx.module;
@@ -421,7 +412,7 @@ exports.makeNodeProgramContext = function makeNodeProgramContext(contextName, mo
   ctx.console        = global.console;
   ctx.URL            = global.URL;
   ctx.Buffer         = global.Buffer;
-
+  
   if (moreModules)
     Object.assign(moduleCache, moreModules);
 

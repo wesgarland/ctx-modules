@@ -1,0 +1,23 @@
+#! /usr/bin/env node
+/**
+ * @file     own-this.simple
+ *           Basic test to ensure that each module has its own "this", and that it is not the outer "this".
+ *
+ * @author   Wes Garland, wes@distributive.network
+ * @date     Feb 2023
+ */
+'use strict';
+const vm = require('vm');
+const assert = require('assert');
+const ctx = require('../ctx-module').makeNodeProgramContext();
+
+const ctxA = vm.runInContext('require("./lib/a")', ctx);
+const ctxB = vm.runInContext('require("./lib/b")', ctx);
+const a = require('./lib/a');
+const b = require('./lib/b');
+
+assert(ctxA.this !== this);
+assert(ctxA.this !== ctxB.this);
+assert(ctxA.this !== a.this);
+assert(ctxA.this !== b.this);
+assert(a.this !== b.this);

@@ -1,0 +1,18 @@
+#! /usr/bin/env node
+/**
+ * @file     strict-mode.simple
+ *           Basic test to ensure that strict mode works per-module.
+ *
+ * @author   Wes Garland, wes@distributive.network
+ * @date     Feb 2023
+ */
+'use strict';
+const vm = require('vm');
+const assert = require('assert');
+const ctx = require('../ctx-module').makeNodeProgramContext();
+
+const ctxA = vm.runInContext('require("./lib/a")', ctx);
+const ctxB = vm.runInContext('require("./lib/b")', ctx);
+
+assert(ctxA.strict === true,  "context A wasn't in strict mode, but it should have been");
+assert(ctxB.strict === false, "context B was in strict mode, but it shouldn't have been");

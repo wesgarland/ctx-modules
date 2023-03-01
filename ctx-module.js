@@ -189,7 +189,9 @@ function CtxModule(ctx, cnId, moduleCache, parent)
   function loadJSModule(module, filename)
   {
     const moduleCode = fs.readFileSync(module.filename, 'utf-8');
+    const SHEBANG_REGEX = /^#!.*\r{0,1}\n/m;
     var moduleFun;
+    var lineOffset = 0;
     
     /* Evaluate the module code and return its exports. We use IIFE as namespace and arguments for
      * symbol names. Fully-formed function provides unique 'this'. Newline in epilogue pushes past // comments,
@@ -197,12 +199,26 @@ function CtxModule(ctx, cnId, moduleCache, parent)
      */
     try
     {
-      const prologue = `(require, exports, module, __filename, __dirname) => {/* ctxModule ${module.filename} */`;
-      const epilogue = '\n}';
+      /* Parse the code to determine the line offset and if we are in Strict Mode or not */
+      if (moduleCode.match(SHEBANG_REGEX))
+      {
+        moduleCode = moduleCode.replace(SHEBANG_REGEX,"");
+        lineOffset = 1;
+      }
+      const bareCode = moduleCode
+        .replace(/(\/\*([\s\S]*?)\*\/)|(\/\/(.*)$)/gm /* comments */, '')
+        .replace(/^[\s]*[\r\n]/gm, '')
+      ;
+      const isStrictMode = !!bareCode.match(/^[\s ]*['"]use strict['"][\s]*(;?|[\r\n])/);
+
+      const prologue = ''
+            + `${isStrictMode ? '"use strict";' : ''}`
+            + `(function ${filename.replace(/[^A-Za-z0-9_]+/g, '_')}(require, exports, module, __filename, __dirname) {`;
+      const epilogue = '\n})';
 
       moduleFun = vm.runInContext(prologue + moduleCode + epilogue,ctx, {
-        filename: filename,
-        lineOffset: 0,
+        filename,
+        lineOffset,
         columnOffset: prologue.length,
       });
     }

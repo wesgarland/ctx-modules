@@ -1,10 +1,12 @@
 {
   "name": "ctx-module",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Load node modules into an alternate context",
   "main": "ctx-module.js",
   "scripts": {
-    "test": "peter tests"
+    "test": "peter tests",
+    "postpublish": "npm-hooks/postpublish",
+    "prepublishOnly": "npm-hooks/prepublish"
   },
   "repository": {
     "type": "git",

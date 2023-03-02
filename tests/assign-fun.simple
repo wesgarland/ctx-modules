@@ -1,0 +1,16 @@
+#! /usr/bin/env node
+/**
+ * @file     assign-fun.simple
+ *           Test to ensure that module.exports = function works as expected
+ *
+ * @author   Wes Garland, wes@distributive.network
+ * @date     Feb 2023
+ */
+'use strict';
+const vm = require('vm');
+const assert = require('assert');
+const ctx = require('../ctx-module').makeNodeProgramContext();
+
+const fun = vm.runInContext('require("./lib/fun")', ctx);
+
+assert(typeof fun === 'function');

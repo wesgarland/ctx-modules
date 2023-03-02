@@ -1,0 +1,23 @@
+#! /usr/bin/env node
+/**
+ * @file     dcp-client.simple
+ *           Basic test to ensure that dcp-client loads and that its module inject code
+ *           works with this module system.
+ *
+ * @author   Wes Garland, wes@distributive.network
+ * @date     Mar 2023
+ */
+'use strict';
+const vm = require('vm');
+const assert = require('assert');
+
+const ctx = require('../ctx-module').makeNodeProgramContext();
+const dcpClient = vm.runInContext('require("dcp-client")', ctx);
+
+async function main()
+{
+  await dcpClient.init();
+  vm.runInContext('require("dcp/compute")', ctx);
+}
+
+main().catch(console.error).finally(process.exit);

@@ -90,7 +90,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     {
       if (path.endsWith('/node_modules'))
         continue;
-      paths.push(pathResolve(`${path}/node_modules`));
+      paths.push(relativeResolve(path, './node_modules'));
       if (path === '/')
         break;
     }
@@ -106,23 +106,17 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       if (typeof moduleCache[moduleIdentifier] === 'object')
         return moduleCache[moduleIdentifier].exports;
 
-      const filenameBase = requireResolve(moduleIdentifier);
-      if (typeof moduleCache[filenameBase] === 'object')
-        return moduleCache[filenameBase].exports;
-      
-      const moduleFilename = locateModuleFile(filenameBase);
-      if (typeof moduleCache[moduleFilename] === 'object')
-        return moduleCache[moduleFilename].exports;
+      moduleIdentifier = requireResolve(moduleIdentifier);
+      if (typeof moduleCache[moduleIdentifier] === 'object')
+        return moduleCache[moduleIdentifier].exports;
 
-      const module = moduleFilename && loadModule(moduleFilename);
-      if (!module)
-        throw new Error(`module not found -- require('${moduleIdentifier}') from ${that.filename || that.id}`);
-
-      return module.exports;
+      const moduleFilename = locateModuleFile(moduleIdentifier);
+      return loadModule(moduleFilename).exports;
     }
     catch(error)
     {
-      error.code = 'MODULE_NOT_FOUND';
+      if (!error.code || error.code === 'ENOENT')
+        error.code = 'MODULE_NOT_FOUND';
       throw error;
     }
   }
@@ -137,6 +131,27 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     this.require.main       = parent.require.main;
   }
   
+  /**
+   * Make a canonical module identifier from an arbitrary module identifier that does not
+   * need path-searching to resolve.
+   *
+   * @param {string} moduleIdentifier        any module identifier (argument to require)
+   * @returns a canonical moduleIdentifier which can be used to resolve the module's filename
+   */
+  function canonicalize(moduleIdentifier)
+  {
+    if (moduleIdentifier.startsWith('./') || moduleIdentifier.startsWith('../'))
+      moduleIdentifier = relativeResolve(that.path, moduleIdentifier);
+    else
+      moduleIdentifier = relativeResolve(moduleIdentifier);
+    if (typeof moduleCache[moduleIdentifier] === 'object')
+      return moduleIdentifier;
+    if (typeof moduleCache[moduleIdentifier] === 'string')
+      moduleIdentifier = relativeResolve(moduleCache[moduleIdentifier]);
+
+    return moduleIdentifier;
+  }
+  
   function dirname(pathname)
   {
     pathname = pathname
@@ -146,31 +161,56 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     return pathname || '/';
   }
 
-  function pathResolve(pathname)
+  /**
+   * Resolve a pathname fragment, which could contain ../ etc, into a rooted pathname with no 
+   * ../ or ./ components, relative to the given directory. Specifying only one argument simply
+   * results in a flattened path.
+   */
+  function relativeResolve(relativeTo, relativePathname)
   {
+    var pathname = relativeTo + (relativePathname ? '/' + relativePathname : '');
+    var components;
+    var newPath = [];
+    
     if (pathname.startsWith('./') || pathname.startsWith('../'))
       pathname = that.path + '/' + pathname;
+    if (pathname.startsWith('/'))
+      newPath[0] = '';
+    
+    components = pathname.split('/');
+    for (let i=0; i < components.length; i++)
+    {
+      let component = components[i];      
+      switch(component)
+      {
+        case '..':
+          newPath.pop();
+          break;
+        case '.': case '':
+          break;
+        default:
+          newPath.push(component);
+      }
+    }
 
-    pathname = pathname
-      .replace(/[^\/]+\/\.\.\//g, '') /* /xyz/.. becomes / */
-      .replace(/\/\.\//g, '/')        /* /./     becomes / */
-      .replace(/\/\//g, '/');         /* //      becomes / */
-
-    return pathname;
+    return newPath.join('/');
   }
-  
+
   /**
    * Search require.path and module.path to map a module identifier onto
    * a full pathname.
    */
   function requireResolve(moduleIdentifier)
   {
-    moduleIdentifier = pathResolve(moduleIdentifier);
-    if (typeof moduleCache[moduleIdentifier] === 'object')
+    var moduleFilename;
+
+    moduleIdentifier = canonicalize(moduleIdentifier);
+    if (moduleCache[moduleIdentifier])
       return moduleIdentifier;
-    if (typeof moduleCache[moduleIdentifier] === 'string')
-      moduleIdentifier = moduleCache[moduleIdentifier];
-    if (moduleIdentifier[0] !== '/')
+    
+    if (moduleIdentifier[0] === '/')
+      moduleFilename = locateModuleFile(`${relativeResolve(moduleIdentifier)}`);
+    else
     {
       let searchPath = that.require.path;
       if (that.paths.length)
@@ -178,12 +218,20 @@ function CtxModule(ctx, cnId, moduleCache, parent)
 
       for (const path of searchPath)
       {
-        const moduleFilename = locateModuleFile(`${pathResolve(path)}/${moduleIdentifier}`);
+        moduleFilename = locateModuleFile(`${relativeResolve(path, moduleIdentifier)}`);
         if (moduleFilename)
-          return moduleFilename;
+          break;
       }
     }
-    return moduleIdentifier;
+    
+    if (!moduleFilename)
+    {
+      const error = new Error(`module not found -- require('${moduleIdentifier}') from ${that.filename || that.id}`);
+      error.code = 'MODULE_NOT_FOUND';
+      throw error;
+    }
+    
+    return moduleFilename;
   }
 
   function loadJSModule(module, filename)
@@ -255,7 +303,8 @@ function CtxModule(ctx, cnId, moduleCache, parent)
   
   /**
    * Locate a module file, given the base filename. This is where we handle resolution of various extensions, 
-   * index.js, package.json 'main' property, etc.
+   * index.js, package.json 'main' property, etc. The base filename would also be the canonical module identifier
+   * in most cases (special case for /index when we recurse).
    *
    * @param {string} filenameBase   rooted path plus most of filename
    */
@@ -266,7 +315,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     if (fs.existsSync(filename = `${filenameBase}/package.json`))
     {
       const pkg = JSON.parse(fs.readFileSync(filename, 'utf-8'));
-      return locateModuleFile(pathResolve(`${filenameBase}/${pkg.main || 'index.js'}`));
+      return locateModuleFile(relativeResolve(filenameBase, pkg.main || 'index.js'));
     }
 
     try

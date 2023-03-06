@@ -353,9 +353,9 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     return false;
   }
 
+  /* Create the exports for the module module; it is special because it needs access to our internals. */
   if (cnId === 'module')
   {
-    this.exports._resolveFilename = requireResolve;
     this.exports._nodeModulePaths = makeNodeModulesPaths;
     
     /* Create a _cache property which looks like Node's, and intercept mutations
@@ -380,6 +380,12 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       const ret = new CtxModule(ctx, id, moduleCache, { require: req });
       return ret;
     }
+
+    this.exports.createRequire = function ctxCreateRequire(filename) {
+      const dummy = new CtxModule(ctx, filename, moduleCache);
+      return dummy.require;
+    };
+    this.exports._resolveFilename = requireResolve;
   }
 }
 
@@ -477,6 +483,8 @@ exports.makeNodeProgramContext = function makeNodeProgramContext(contextName, mo
   ctx.queueMicrotask = global.queueMicrotask;
   ctx.console        = global.console;
 
+  const localRequire = ctx.require('module').createRequire(__filename);
+  
   /* Load all of the built-in node modules from the "real" context into this context, unless it is
    * listed as a direct dependency of ctx-module, in which case we prepare to load the polyfill package 
    * from disk into the new context.
@@ -485,11 +493,9 @@ exports.makeNodeProgramContext = function makeNodeProgramContext(contextName, mo
     if (!moduleCache[cnId] && cnId !== 'sys')
     {
       if (myPackage.dependencies[cnId])
-        moduleCache[cnId] = ctx.require.resolve(cnId);
+        moduleCache[cnId] = localRequire.resolve(cnId);
       else
         moduleCache[cnId] = CtxModule.from(ctx, require(cnId));
-      if (myPackage.dependencies[cnId])
-        console.log(cnId, ctx.require.resolve(cnId));
     }
   });
 

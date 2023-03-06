@@ -204,11 +204,14 @@ function CtxModule(ctx, cnId, moduleCache, parent)
   {
     var moduleFilename;
     debug('ctx-module:requireResolve')('require.resolve', moduleIdentifier);
-
+    
     moduleIdentifier = canonicalize(moduleIdentifier);
     if (moduleCache[moduleIdentifier])
+    {
+      debug('ctx-module:requireResolve')('require.resolve', moduleIdentifier, '=>', moduleIdentifier, '(cache hit)');
       return moduleIdentifier;
-
+    }
+    
     if (moduleIdentifier[0] === '/')
       moduleFilename = locateModuleFile(relativeResolve(moduleIdentifier));
     else
@@ -232,7 +235,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       throw error;
     }
     
-    debug('ctx-module:requireResolve')('require.resolve =>', moduleFilename);
+    debug('ctx-module:requireResolve')('require.resolve', moduleIdentifier, '=>', moduleFilename);
     return moduleFilename;
   }
 

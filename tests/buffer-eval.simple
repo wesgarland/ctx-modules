@@ -1,0 +1,21 @@
+#! /usr/bin/env node
+/**
+ * @file     buffer-eval.simple
+ *           Test to ensure that the Buffer constructor is different in the context from the global
+ *           Buffer constructor, even after we try to escape with eval.
+ *
+ * @author   Wes Garland, wes@distributive.network
+ * @date     Mar 2023
+ */
+'use strict';
+const vm = require('vm');
+const assert = require('assert');
+const ctx = require('../ctx-module').makeNodeProgramContext();
+
+const b1 = vm.runInContext('debugger; Buffer',   ctx);
+const b2 = vm.runInContext(    'eval("Buffer")', ctx);
+const b3 = vm.runInContext('(0,eval)("Buffer")', ctx);
+
+assert(b1 === b2);
+assert(b2 === b3);
+assert(b3 !== Buffer);

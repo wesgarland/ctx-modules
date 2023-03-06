@@ -1,0 +1,15 @@
+#! /usr/bin/env node
+/**
+ * @file     assign-fun.simple
+ *           Test to ensure that the Buffer constructor produces arrays which are instances 
+ *           of the Uint8Array from the new context.
+ *
+ * @author   Wes Garland, wes@distributive.network
+ * @date     Mar 2023
+ */
+'use strict';
+const vm = require('vm');
+const assert = require('assert');
+const ctx = require('../ctx-module').makeNodeProgramContext();
+
+assert(vm.runInContext('debugger; Buffer.from([]) instanceof Uint8Array', ctx));

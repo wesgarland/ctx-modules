@@ -23,6 +23,8 @@
  */
 'use strict';
 
+const debug   = require('debug');
+
 /**
  * CtxModule constructor; creates a new module.
  *
@@ -70,7 +72,8 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     this.paths = makeNodeModulesPaths(this.path);
   }
 
-  /** Creates the path list for module.paths, eg
+  /** 
+   * Creates the path list for module.paths, eg
    *  /home/wes/git/dcp/node_modules
    *  /home/wes/git/node_modules
    *  /home/wes/node_modules
@@ -101,16 +104,13 @@ function CtxModule(ctx, cnId, moduleCache, parent)
   /** Implementation of require() for this module */
   this.require = function ctxRequire(moduleIdentifier)
   {
+    debug('ctx-module:require')('require ' + moduleIdentifier);
+
     try
-    {     
-      if (typeof moduleCache[moduleIdentifier] === 'object')
-        return moduleCache[moduleIdentifier].exports;
-
-      moduleIdentifier = requireResolve(moduleIdentifier);
-      if (typeof moduleCache[moduleIdentifier] === 'object')
-        return moduleCache[moduleIdentifier].exports;
-
-      const moduleFilename = locateModuleFile(moduleIdentifier);
+    {
+      const moduleFilename = requireResolve(moduleIdentifier);
+      if (typeof moduleCache[moduleFilename] === 'object')
+        return moduleCache[moduleFilename].exports;
       return loadModule(moduleFilename).exports;
     }
     catch(error)
@@ -203,13 +203,14 @@ function CtxModule(ctx, cnId, moduleCache, parent)
   function requireResolve(moduleIdentifier)
   {
     var moduleFilename;
+    debug('ctx-module:requireResolve')('require.resolve', moduleIdentifier);
 
     moduleIdentifier = canonicalize(moduleIdentifier);
     if (moduleCache[moduleIdentifier])
       return moduleIdentifier;
-    
+
     if (moduleIdentifier[0] === '/')
-      moduleFilename = locateModuleFile(`${relativeResolve(moduleIdentifier)}`);
+      moduleFilename = locateModuleFile(relativeResolve(moduleIdentifier));
     else
     {
       let searchPath = that.require.path;
@@ -218,12 +219,12 @@ function CtxModule(ctx, cnId, moduleCache, parent)
 
       for (const path of searchPath)
       {
-        moduleFilename = locateModuleFile(`${relativeResolve(path, moduleIdentifier)}`);
+        moduleFilename = locateModuleFile(relativeResolve(path, moduleIdentifier));
         if (moduleFilename)
           break;
       }
     }
-    
+
     if (!moduleFilename)
     {
       const error = new Error(`module not found -- require('${moduleIdentifier}') from ${that.filename || that.id}`);
@@ -231,13 +232,14 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       throw error;
     }
     
+    debug('ctx-module:requireResolve')('require.resolve =>', moduleFilename);
     return moduleFilename;
   }
 
   function loadJSModule(module, filename)
   {
-    const moduleCode = fs.readFileSync(module.filename, 'utf-8');
     const SHEBANG_REGEX = /^#!.*\r{0,1}\n/m;
+    var moduleCode = fs.readFileSync(module.filename, 'utf-8');
     var moduleFun;
     var lineOffset = 0;
     
@@ -250,15 +252,13 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       /* Parse the code to determine the line offset and if we are in Strict Mode or not */
       if (moduleCode.match(SHEBANG_REGEX))
       {
-        moduleCode = moduleCode.replace(SHEBANG_REGEX,"");
+        moduleCode = moduleCode.replace(SHEBANG_REGEX, '');
         lineOffset = 1;
       }
       const bareCode = moduleCode
         .replace(/(\/\*([\s\S]*?)\*\/)|(\/\/(.*)$)/gm /* comments */, '')
-        .replace(/^[\s]*[\r\n]/gm, '')
-      ;
+        .replace(/^[\s]*[\r\n]/gm, '');
       const isStrictMode = !!bareCode.match(/^[\s ]*['"]use strict['"][\s]*(;?|[\r\n])/);
-
       const prologue = ''
             + `${isStrictMode ? '"use strict";' : ''}`
             + `(function ${filename.replace(/[^A-Za-z0-9_]+/g, '_')}(require, exports, module, __filename, __dirname) {`;
@@ -296,6 +296,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     /* use either the correct-named or the .js loader to load this file as a module */
     const loader = that.require.extensions[ext] || that.require.extensions['.js'];
 
+    debug('ctx-module:load')(loader.name, filename);
     loader(module, filename);
     module.loaded = true;
     return module;
@@ -452,21 +453,18 @@ exports.makeNodeProgramContext = function makeNodeProgramContext(contextName, mo
   const ctx = vm.createContext({}, {
     name: contextName,
   });
-
+  const myPackage = require('./package.json');
   const moduleCache = {};
+  
   moduleCache.vm = CtxModule.from(ctx, vmModuleExportsFactory(ctx));
   moduleCache.module = new CtxModule(ctx, 'module', moduleCache); /* ctor magic knows how to make exports */
-
-  require('module').builtinModules.filter(cnId => /^[a-z]/.test(cnId)).forEach((cnId) => {
-    if (!moduleCache[cnId] && cnId !== 'sys')
-      moduleCache[cnId] = CtxModule.from(ctx, require(cnId));
-  });
+  if (moreModules)
+    Object.assign(moduleCache, moreModules);
 
   ctx.module         = new CtxModule(ctx, require.main.filename, moduleCache);
   ctx.global         = ctx;
   ctx.require        = ctx.module.require;
   ctx.require.main   = ctx.module;
-  ctx.process        = ctx.require('process');
   ctx.setTimeout     = global.setTimeout;
   ctx.clearTimeout   = global.clearTimeout;
   ctx.setInterval    = global.setInterval;
@@ -475,11 +473,26 @@ exports.makeNodeProgramContext = function makeNodeProgramContext(contextName, mo
   ctx.clearImmediate = global.clearImmediate;
   ctx.queueMicrotask = global.queueMicrotask;
   ctx.console        = global.console;
-  ctx.URL            = global.URL;
-  ctx.Buffer         = global.Buffer;
-  
-  if (moreModules)
-    Object.assign(moduleCache, moreModules);
+
+  /* Load all of the built-in node modules from the "real" context into this context, unless it is
+   * listed as a direct dependency of ctx-module, in which case we prepare to load the polyfill package 
+   * from disk into the new context.
+   */
+  require('module').builtinModules.filter(cnId => /^[a-z]/.test(cnId)).forEach((cnId) => {
+    if (!moduleCache[cnId] && cnId !== 'sys')
+    {
+      if (myPackage.dependencies[cnId])
+        moduleCache[cnId] = ctx.require.resolve(cnId);
+      else
+        moduleCache[cnId] = CtxModule.from(ctx, require(cnId));
+      if (myPackage.dependencies[cnId])
+        console.log(cnId, ctx.require.resolve(cnId));
+    }
+  });
+
+  ctx.process = ctx.require('process');
+  ctx.Buffer  = ctx.require('buffer').Buffer;
+  ctx.URL     = ctx.require('url').URL;
 
   return ctx;
 }

@@ -27,5 +27,8 @@
   "devDependencies": {
     "dcp-client": "^4.2.25",
     "peter": "^2.3.9"
+  },
+  "dependencies": {
+    "buffer": "^6.0.3"
   }
 }

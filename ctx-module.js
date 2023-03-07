@@ -444,44 +444,56 @@ function vmModuleExportsFactory(ctx)
   return exp;
 }
 
+const defaultGlobals = {
+  setTimeout:     global.setTimeout,
+  clearTimeout:   global.clearTimeout,
+  setInterval:    global.setInterval,
+  clearInterval:  global.clearInterval,
+  setImmediate:   global.setImmediate,
+  clearImmediate: global.clearImmediate,
+  queueMicrotask: global.queueMicrotask,
+  console:        global.console,
+};
+
 /**
  * Factory function which creates a fresh context suitable for running NodeJS programs. Default
  * modules such as fs, os, vm, path, process, tty, etc, are linked from the calling context.
  *
- * @param {string} contextName        [optional] name of the context
- * @param {object} moreModules        [optional] an object shaped like moduleCache which can inject
- *                                    modules from the outer context. Each property name is either
- *                                    the canonical module identifier (usually a rooted pathname) or
- *                                    a search-path module identifier (eg "path"). Each property must
- *                                    be either a string containing the module's filename, or an object
+ * @param {object} options            [optional] object with the following optional properties which
+ *                                    override internal defaults:
+ *                 - contextName      name of the context
+ *                 - modules          an object used to prepopulate moduleCache so we can inject modules
+ *                                    from the outer context. Each property name is either the canonical
+ *                                    module identifier (usually a rooted pathname) or a search-path
+ *                                    module identifier (eg "path"). Each property must be either a 
+ *                                    string containing the module's filename, or an object
  *                                    containing the module's exports.
  */
-exports.makeNodeProgramContext = function makeNodeProgramContext(contextName, moreModules)
+exports.makeNodeProgramContext = function makeNodeProgramContext(options)
 {
   const vm = require('vm');
   const ctx = vm.createContext({}, {
-    name: contextName,
+    name: options?.contextName,
   });
   const myPackage = require('./package.json');
   const moduleCache = {};
   
   moduleCache.vm = CtxModule.from(ctx, vmModuleExportsFactory(ctx));
   moduleCache.module = new CtxModule(ctx, 'module', moduleCache); /* ctor magic knows how to make exports */
-  if (moreModules)
-    Object.assign(moduleCache, moreModules);
+  
+  for (let id in options?.modules)
+  {
+    if (typeof options.modules[id] === 'string')
+      moduleCache[id] = options.modules[id];
+    else
+      moduleCache[id] = CtxModule.from(ctx, options.modules[id]);
+  }
 
+  Object.assign(ctx, defaultGlobals, options?.globals);
   ctx.module         = new CtxModule(ctx, require.main.filename, moduleCache);
   ctx.global         = ctx;
   ctx.require        = ctx.module.require;
   ctx.require.main   = ctx.module;
-  ctx.setTimeout     = global.setTimeout;
-  ctx.clearTimeout   = global.clearTimeout;
-  ctx.setInterval    = global.setInterval;
-  ctx.clearInterval  = global.clearInterval;
-  ctx.setImmediate   = global.setImmediate;
-  ctx.clearImmediate = global.clearImmediate;
-  ctx.queueMicrotask = global.queueMicrotask;
-  ctx.console        = global.console;
 
   const localRequire = ctx.require('module').createRequire(__filename);
   
@@ -494,6 +506,8 @@ exports.makeNodeProgramContext = function makeNodeProgramContext(contextName, mo
     {
       if (myPackage.dependencies[cnId])
         moduleCache[cnId] = localRequire.resolve(cnId);
+      else if (myPackage.dependencies[`${cnId}-browserify`])
+        moduleCache[cnId] = localRequire.resolve(`${cnId}-browserify`);
       else
         moduleCache[cnId] = CtxModule.from(ctx, require(cnId));
     }
@@ -505,3 +519,5 @@ exports.makeNodeProgramContext = function makeNodeProgramContext(contextName, mo
 
   return ctx;
 }
+
+exports.CtxModule = CtxModule;

@@ -1,6 +1,6 @@
 {
   "name": "ctx-module",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Load node modules into an alternate context",
   "main": "ctx-module.js",
   "scripts": {
@@ -29,6 +29,7 @@
     "peter": "^2.3.9"
   },
   "dependencies": {
-    "buffer": "^6.0.3"
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.0"
   }
 }

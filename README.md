@@ -24,7 +24,8 @@ signficant dependencies and tinkers with module filename resolution.
 - require.main
 - require.extensions
 - node_modules / package.json / index.js
-- JSON modules
+- JSON modules (.json)
+- NAPI modules (.node)
 - MODULE_NOT_FOUND error code
 - `module` module with a Module class with limited support for userland manipulation of
   _resolveFilename, _cache, etc.

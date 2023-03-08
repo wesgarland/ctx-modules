@@ -59,8 +59,9 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       path: [],
       main: undefined,
       extensions: {
-        '.js': loadJSModule,
+        '.js':   loadJSModule,
         '.json': loadJSONModule,
+        '.node': loadNAPIModule,
       },
     };
   }
@@ -203,7 +204,6 @@ function CtxModule(ctx, cnId, moduleCache, parent)
   function requireResolve(moduleIdentifier)
   {
     var moduleFilename;
-    debug('ctx-module:requireResolve')('require.resolve', moduleIdentifier);
     
     moduleIdentifier = canonicalize(moduleIdentifier);
     if (moduleCache[moduleIdentifier])
@@ -283,6 +283,11 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     if (typeof retval !== 'undefined') /* non-CJS idiom: return exports */
       module.exports = retval;
     that.exports = module.exports; /* non-CJS idiom: re-assign module.exports */
+  }
+
+  function loadNAPIModule(module, filename)
+  {
+    Object.assign(module.exports, ctx.process.dlopen(module, filename));
   }
 
   function loadJSONModule(module, filename)

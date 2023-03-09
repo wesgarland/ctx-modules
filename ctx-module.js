@@ -287,12 +287,12 @@ function CtxModule(ctx, cnId, moduleCache, parent)
 
   function loadNAPIModule(module, filename)
   {
-    Object.assign(module.exports, ctx.process.dlopen(module, filename));
+    copyProps(module.exports, ctx.process.dlopen(module, filename));
   }
 
   function loadJSONModule(module, filename)
   {
-    Object.assign(module.exports, JSON.parse(fs.readFileSync(filename, 'utf-8')));
+    copyProps(module.exports, JSON.parse(fs.readFileSync(filename, 'utf-8')));
   }
 
   function loadModule(filename)
@@ -411,7 +411,7 @@ CtxModule.from = function ctxModuleFrom(ctx, exports)
   {
     if (exports.constructor !== Object)
       module.exports = new (exports.constructor); /* magic modules like process need this */
-    Object.assign(module.exports, exports);
+    copyProps(module.exports, exports);
   }
 
   return module;
@@ -426,7 +426,7 @@ CtxModule.from = function ctxModuleFrom(ctx, exports)
 function vmModuleExportsFactory(ctx)
 {
   const vm = require('vm');
-  const exp = Object.assign({}, vm);
+  const exp = copyProps({}, vm);
   
   exp.runInThisContext = function runInThisContext(code, options) {
     return vm.runInContext(code, ctx, options);
@@ -523,6 +523,13 @@ exports.makeNodeProgramContext = function makeNodeProgramContext(options)
   ctx.URL     = ctx.require('url').URL;
 
   return ctx;
+}
+
+function copyProps(dst, src)
+{
+  const pds = Object.getOwnPropertyDescriptors(src);
+  Object.defineProperties(dst, pds);
+  return dst;
 }
 
 exports.CtxModule = CtxModule;

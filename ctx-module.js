@@ -282,12 +282,11 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     const retval = moduleFun(module.require, module.exports, module, module.filename, dirname(module.filename));
     if (typeof retval !== 'undefined') /* non-CJS idiom: return exports */
       module.exports = retval;
-    that.exports = module.exports; /* non-CJS idiom: re-assign module.exports */
   }
 
   function loadNAPIModule(module, filename)
   {
-    copyProps(module.exports, ctx.process.dlopen(module, filename));
+    ctx.process.dlopen(module, filename); /* replaces module.exports */
   }
 
   function loadJSONModule(module, filename)

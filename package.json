@@ -1,7 +1,7 @@
 {
   "name": "ctx-module",
-  "version": "1.0.7",
-  "description": "Load node modules into an alternate context",
+  "version": "1.0.8",
+  "description": "Load node modules into specific context",
   "main": "ctx-module.js",
   "scripts": {
     "test": "peter tests",

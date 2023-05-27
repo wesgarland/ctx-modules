@@ -1,4 +1,3 @@
-#! /usr/bin/env node
 /**
  * @file        ctx-module.js
  *              A CommonJS-style module system for NodeJS which has a high degree of compatibility with 

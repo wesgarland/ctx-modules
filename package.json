@@ -1,6 +1,6 @@
 {
   "name": "ctx-module",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Load node modules into specific context",
   "main": "ctx-module.js",
   "scripts": {
@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/wesgarland/ctx-module#readme",
   "devDependencies": {
-    "dcp-client": "^4.2.25",
+    "dcp-client": "^4.2.30",
     "peter": "^2.3.9"
   },
   "dependencies": {

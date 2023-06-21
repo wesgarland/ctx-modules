@@ -1,0 +1,30 @@
+/**
+ * @file     module-identifier.simple
+ *           Script that tests if requiring the current directory works and checking if that module
+ *           is properly cached in the context's require.cache.
+ *
+ * @author   Robert Mirandola, <robert@distributive.network>
+ * @date     June 2023
+ */
+'use strict';
+const vm = require('vm');
+const ctx = require('../ctx-module').makeNodeProgramContext();
+
+const identifyModule = vm.runInContext(`(function identifyModule() {
+  console.log('running test..');
+  const assert = require('assert');
+  
+  require('.');
+  let isModuleCached = false;
+  for (const [key] of Object.entries(require.cache)) {
+    if (key.includes('/tests/index.js'))
+    {
+      isModuleCached = true;
+      break;
+    }
+  }
+  assert(isModuleCached, 'Module was not cached in require.cache');
+  console.log('test passed');
+})`, ctx);
+
+identifyModule();

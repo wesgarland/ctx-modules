@@ -123,6 +123,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
 
   /* Decorate new module's require with API properties */
   this.require.id = cnId;
+  this.require.cache = moduleCache;
   this.require.resolve = requireResolve;
   if (parent && parent.require)
   {
@@ -140,7 +141,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
    */
   function canonicalize(moduleIdentifier)
   {
-    if (moduleIdentifier.startsWith('./') || moduleIdentifier.startsWith('../'))
+    if (moduleIdentifier.startsWith('./') || moduleIdentifier.startsWith('../') || moduleIdentifier === '.')
       moduleIdentifier = relativeResolve(that.path, moduleIdentifier);
     else
       moduleIdentifier = relativeResolve(moduleIdentifier);

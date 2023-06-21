@@ -517,9 +517,10 @@ exports.makeNodeProgramContext = function makeNodeProgramContext(options)
     }
   });
 
-  ctx.process = ctx.require('process');
-  ctx.Buffer  = ctx.require('buffer').Buffer;
-  ctx.URL     = ctx.require('url').URL;
+  ctx.process         = ctx.require('process');
+  ctx.Buffer          = ctx.require('buffer').Buffer;
+  ctx.URL             = ctx.require('url').URL;
+  ctx.URLSearchParams = ctx.require('url').URLSearchParams;
 
   return ctx;
 }

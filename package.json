@@ -1,6 +1,6 @@
 {
   "name": "ctx-module",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Load node modules into specific context",
   "main": "ctx-module.js",
   "scripts": {

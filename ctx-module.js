@@ -22,7 +22,9 @@
  */
 'use strict';
 
-const debug   = require('debug');
+const debug = require('debug');
+const fs    = require('fs');
+const vm    = require('vm');
 
 /**
  * CtxModule constructor; creates a new module.
@@ -41,8 +43,6 @@ const debug   = require('debug');
  */
 function CtxModule(ctx, cnId, moduleCache, parent)
 {
-  const fs = require('fs');
-  const vm = require('vm');
   const that = this;
   
   /* Create the resources for new module long before eval so that circular deps work */
@@ -424,7 +424,6 @@ CtxModule.from = function ctxModuleFrom(ctx, exports)
  */
 function vmModuleExportsFactory(ctx)
 {
-  const vm = require('vm');
   const exp = copyProps({}, vm);
   
   exp.runInThisContext = function runInThisContext(code, options) {
@@ -449,14 +448,14 @@ function vmModuleExportsFactory(ctx)
 }
 
 const defaultGlobals = {
-  setTimeout:     global.setTimeout,
-  clearTimeout:   global.clearTimeout,
-  setInterval:    global.setInterval,
-  clearInterval:  global.clearInterval,
-  setImmediate:   global.setImmediate,
-  clearImmediate: global.clearImmediate,
-  queueMicrotask: global.queueMicrotask,
-  console:        global.console,
+  setTimeout:     globalThis.setTimeout,
+  clearTimeout:   globalThis.clearTimeout,
+  setInterval:    globalThis.setInterval,
+  clearInterval:  globalThis.clearInterval,
+  setImmediate:   globalThis.setImmediate,
+  clearImmediate: globalThis.clearImmediate,
+  queueMicrotask: globalThis.queueMicrotask,
+  console:        globalThis.console,
 };
 
 /**
@@ -475,7 +474,6 @@ const defaultGlobals = {
  */
 exports.makeNodeProgramContext = function makeNodeProgramContext(options)
 {
-  const vm = require('vm');
   const ctx = vm.createContext({}, {
     name: options?.contextName,
   });

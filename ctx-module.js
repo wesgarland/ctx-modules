@@ -109,7 +109,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     try
     {
       const moduleFilename = requireResolve(moduleIdentifier);
-      if (typeof moduleCache[moduleFilename] === 'object')
+      if (moduleCache.hasOwnProperty(moduleFilename) && typeof moduleCache[moduleFilename] === 'object')
         return moduleCache[moduleFilename].exports;
       return loadModule(moduleFilename).exports;
     }
@@ -145,10 +145,13 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       moduleIdentifier = relativeResolve(that.path, moduleIdentifier);
     else
       moduleIdentifier = relativeResolve(moduleIdentifier);
-    if (typeof moduleCache[moduleIdentifier] === 'object')
-      return moduleIdentifier;
-    if (typeof moduleCache[moduleIdentifier] === 'string')
-      moduleIdentifier = relativeResolve(moduleCache[moduleIdentifier]);
+    if (moduleCache.hasOwnProperty(moduleIdentifier))
+    {
+      if (typeof moduleCache[moduleIdentifier] === 'object')
+        return moduleIdentifier;
+      if (typeof moduleCache[moduleIdentifier] === 'string')
+        moduleIdentifier = relativeResolve(moduleCache[moduleIdentifier]);
+    }
 
     return moduleIdentifier;
   }
@@ -206,7 +209,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     var moduleFilename;
     
     moduleIdentifier = canonicalize(moduleIdentifier);
-    if (moduleCache[moduleIdentifier])
+    if (moduleCache.hasOwnProperty(moduleIdentifier))
     {
       debug('ctx-module:requireResolve')('require.resolve', moduleIdentifier, '=>', moduleIdentifier, '(cache hit)');
       return moduleIdentifier;
@@ -367,7 +370,12 @@ function CtxModule(ctx, cnId, moduleCache, parent)
      */
     this.exports._cache = new Proxy(moduleCache, {
       get (_moduleCache, moduleIdentifier) {
-        return typeof moduleCache[moduleIdentifier] === 'object' ? moduleCache[moduleIdentifier] : undefined;
+        const retval = (true
+                        && typeof moduleCache.hasOwnProperty(moduleIdentifier)
+                        && moduleCache[moduleIdentifier] === 'object')
+              ? moduleCache[moduleIdentifier]
+              : undefined;
+        return retval;
       },
       set (_moduleCache, moduleIdentifier, value) {
         if (!(value instanceof CtxModule))

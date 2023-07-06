@@ -115,7 +115,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     }
     catch(error)
     {
-      if (!error.code || error.code === 'ENOENT')
+      if (error.code === 'ENOENT')
         error.code = 'MODULE_NOT_FOUND';
       throw error;
     }
@@ -311,7 +311,6 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     } 
     catch (error) 
     {
-      debugger
       delete moduleCache[filename];
       throw error;
     }

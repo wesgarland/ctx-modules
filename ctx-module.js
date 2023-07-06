@@ -304,7 +304,18 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     const loader = that.require.extensions[ext] || that.require.extensions['.js'];
 
     debug('ctx-module:load')(loader.name, filename);
-    loader(module, filename);
+
+    try 
+    {
+      loader(module, filename);
+    } 
+    catch (error) 
+    {
+      debugger
+      delete moduleCache[filename];
+      throw error;
+    }
+
     module.loaded = true;
     return module;
   }

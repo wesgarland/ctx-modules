@@ -28,7 +28,7 @@ catch(error)
 try
 {
   vm.runInContext('require("bad-path")', ctx);
-  console.error('Module should have been found');
+  console.error('Module should not have been found.');
   process.exit(2);
 }
 catch(error)

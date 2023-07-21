@@ -159,8 +159,8 @@ function CtxModule(ctx, cnId, moduleCache, parent)
   function dirname(pathname)
   {
     pathname = pathname
-      .replace(/\/$/, '')         /* strip trailing slash */
-      .replace(/\/[^/]+$/, '');   /* strip last slash to end */
+      .replace(/[\/\\]$/, '')           /* strip trailing slash */
+      .replace(/[\/\\][^/\\]+$/, '');   /* strip last slash to end */
     
     return pathname || '/';
   }

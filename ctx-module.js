@@ -239,7 +239,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     }
     
     debug('ctx-module:requireResolve')('require.resolve', moduleIdentifier, '=>', moduleFilename);
-    return moduleFilename;
+    return moduleFilename.split('\\').join('/');
   }
 
   function loadJSModule(module, filename)

@@ -115,7 +115,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     }
     catch(error)
     {
-      if (!error.code || error.code === 'ENOENT')
+      if (error.code === 'ENOENT')
         error.code = 'MODULE_NOT_FOUND';
       throw error;
     }
@@ -307,7 +307,17 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     const loader = that.require.extensions[ext] || that.require.extensions['.js'];
 
     debug('ctx-module:load')(loader.name, filename);
-    loader(module, filename);
+
+    try 
+    {
+      loader(module, filename);
+    } 
+    catch (error) 
+    {
+      delete moduleCache[filename];
+      throw error;
+    }
+
     module.loaded = true;
     return module;
   }

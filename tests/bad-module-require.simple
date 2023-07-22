@@ -1,0 +1,31 @@
+#! /usr/bin/env node
+/**
+ * @file     bad-module-require.simple
+ *           Test to ensure that requiring a module that throws an error cannot be properly required again.
+ *
+ * @author   Robert Mirandola, <robert@distributive.network>
+ * @date     July 2023
+ */
+ 'use strict';
+
+const vm = require('vm');
+const ctx = require('../ctx-module').makeNodeProgramContext();
+
+try
+{
+  vm.runInContext('require("./lib/bad-mod")', ctx);
+  console.error('Module should have thrown an error');
+  process.exit(1);
+}
+catch(e){}
+
+try
+{
+  vm.runInContext('require("./lib/bad-mod")', ctx);
+  console.error('Module was saved to moduleCache even though the module was not successfully loaded.');
+  process.exit(2);
+}
+catch(error)
+{
+  console.log('test passed');
+}

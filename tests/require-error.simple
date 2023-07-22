@@ -1,0 +1,38 @@
+#! /usr/bin/env node
+/**
+ * @file     require-error.simple
+ *           Test to ensure that requiring a module that throws an error does not return an error
+ *           code. Also ensures that requiring a module that does not exist throws an error with code
+ *           'MODULE_NOT_FOUND'.
+ *
+ * @author   Robert Mirandola, <robert@distributive.network>
+ * @date     July 2023
+ */
+ 'use strict';
+
+const vm = require('vm');
+const assert = require('assert');
+const ctx = require('../ctx-module').makeNodeProgramContext();
+
+try
+{
+  vm.runInContext('require("./lib/bad-mod")', ctx);
+  console.error('Module did not throw an error.');
+  process.exit(1);
+}
+catch(error)
+{
+  assert(!error.code, `Error has error code ${error.code}`);
+}
+
+try
+{
+  vm.runInContext('require("bad-path")', ctx);
+  console.error('Module should not have been found.');
+  process.exit(2);
+}
+catch(error)
+{
+  assert(error?.code === 'MODULE_NOT_FOUND', `Module threw a different error: ${error}`);
+  console.log('test passed');
+}

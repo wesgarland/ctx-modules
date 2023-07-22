@@ -159,8 +159,8 @@ function CtxModule(ctx, cnId, moduleCache, parent)
   function dirname(pathname)
   {
     pathname = pathname
-      .replace(/\/$/, '')         /* strip trailing slash */
-      .replace(/\/[^/]+$/, '');   /* strip last slash to end */
+      .replace(/[\/\\]$/, '')           /* strip trailing slash */
+      .replace(/[\/\\][^/\\]+$/, '');   /* strip last slash to end */
     
     return pathname || '/';
   }
@@ -215,7 +215,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       return moduleIdentifier;
     }
     
-    if (moduleIdentifier[0] === '/')
+    if (moduleIdentifier[0] === '/' || moduleIdentifier.match(/^[A-Z]:[\/\\]/)) // absolute paths
       moduleFilename = locateModuleFile(relativeResolve(moduleIdentifier));
     else
     {
@@ -239,7 +239,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     }
     
     debug('ctx-module:requireResolve')('require.resolve', moduleIdentifier, '=>', moduleFilename);
-    return moduleFilename;
+    return moduleFilename.split('\\').join('/');
   }
 
   function loadJSModule(module, filename)

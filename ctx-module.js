@@ -64,6 +64,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       },
     };
   }
+  this.parent = parent;
 
   if (cnId) /* false => completely virtual exports-only module, via Module.from */
   {
@@ -373,6 +374,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
   /* Create the exports for the module module; it is special because it needs access to our internals. */
   if (cnId === 'module')
   {
+    this.exports.builtinModules = [];
     this.exports._nodeModulePaths = makeNodeModulesPaths;
     
     /* Create a _cache property which looks like Node's, and intercept mutations
@@ -382,7 +384,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       get (_moduleCache, moduleIdentifier) {
         const retval = (true
                         && typeof moduleCache.hasOwnProperty(moduleIdentifier)
-                        && moduleCache[moduleIdentifier] === 'object')
+                        && typeof moduleCache[moduleIdentifier] === 'object')
               ? moduleCache[moduleIdentifier]
               : undefined;
         return retval;

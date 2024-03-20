@@ -105,7 +105,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
   /** Implementation of require() for this module */
   this.require = function ctxRequire(moduleIdentifier)
   {
-    moduleIdentifier = backToForward(moduleIdentifier);
+    moduleIdentifier = moduleIdentifier.replace(/\\/g, '/');
     debug('ctx-module:require')('require ' + moduleIdentifier);
 
     try
@@ -183,7 +183,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     if (pathname.startsWith('/'))
       newPath[0] = '';
     
-    components = pathSplit(pathname);
+    components = pathname.replace(/\\/g, '/').split('/');
     for (let i=0; i < components.length; i++)
     {
       let component = components[i];      
@@ -549,22 +549,6 @@ function copyProps(dst, src)
   const pds = Object.getOwnPropertyDescriptors(src);
   Object.defineProperties(dst, pds);
   return dst;
-}
-
-/**
- * Splits Windows and Posix paths the same
- */
-function pathSplit(path)
-{
-  return backToForward(path).split('/');
-}
-
-/**
- * Converts backslashes to forward slashes
- */
-function backToForward(path)
-{
-  return path.replace(/\\/g, '/');
 }
 
 exports.CtxModule = CtxModule;

@@ -90,7 +90,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       return paths;
     
     /* Create a new modules.path for node_modules resolution */
-    for (let path = fromPath; path && path[0] === '/'; path = dirname(path))
+    for (let path = fromPath; path && (path[0] === '/' || path.match(/^[a-zA-Z]:[\/\\]/)); path = dirname(path))
     {
       if (path.endsWith('/node_modules'))
         continue;
@@ -105,6 +105,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
   /** Implementation of require() for this module */
   this.require = function ctxRequire(moduleIdentifier)
   {
+    moduleIdentifier = moduleIdentifier.replace(/\\/g, '/');
     debug('ctx-module:require')('require ' + moduleIdentifier);
 
     try
@@ -182,7 +183,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
     if (pathname.startsWith('/'))
       newPath[0] = '';
     
-    components = pathname.split('/');
+    components = pathname.replace(/\\/g, '/').split('/');
     for (let i=0; i < components.length; i++)
     {
       let component = components[i];      
@@ -216,7 +217,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       return moduleIdentifier;
     }
     
-    if (moduleIdentifier[0] === '/' || moduleIdentifier.match(/^[A-Z]:[\/\\]/)) // absolute paths
+    if (moduleIdentifier[0] === '/' || moduleIdentifier.match(/^[a-zA-Z]:[\/\\]/)) // absolute paths
       moduleFilename = locateModuleFile(relativeResolve(moduleIdentifier));
     else
     {

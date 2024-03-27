@@ -1,0 +1,35 @@
+'use strict';
+/**
+ * @file     windows-paths-smoke-test.simple
+ *           Test if ctx-module operates properly with Windows paths.
+ *
+ * @author   Will Pringle <will@distributive.network>
+ * @date     March 2024
+ */
+const assert = require('assert').strict;
+const vm = require('vm');
+const ctx = require('..\\ctx-module').makeNodeProgramContext();
+const ctxRequire = vm.runInContext('require', ctx);
+
+// full windows path
+const helloWorld = ctxRequire(__dirname + '\\helloWorld.js');
+assert(helloWorld.hello, 'world');
+
+// lets change it to 'earth' and see if further requires grab the right module
+helloWorld.hello = 'earth';
+
+// unix relative path 
+const helloWorld2 = ctxRequire('./helloWorld');
+assert(helloWorld2.hello, 'earth');
+
+// unix relative path with ..
+const helloWorld3 = ctxRequire('../windows-tests/helloWorld.js');
+assert(helloWorld3.hello, 'earth');
+
+// full windows path with ..
+const helloWorld4 = ctxRequire(__dirname + '\\..\\windows-tests\\helloWorld');
+assert(helloWorld4.hello, 'earth');
+
+// check that it hasn't somehow polluted nodejs require
+const helloWorld5 = require('./helloWorld');
+assert(helloWorld5.hello, 'world');

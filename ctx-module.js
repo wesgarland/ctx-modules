@@ -547,7 +547,7 @@ exports.makeNodeProgramContext = function makeNodeProgramContext(options)
 function copyProps(dst, src)
 {
   const pds = Object.getOwnPropertyDescriptors(src);
-  for (var propds in pds)
+  for (const propds in pds)
   {
     if (pds[propds].configurable)
       Object.defineProperty(dst, propds, pds[propds]);

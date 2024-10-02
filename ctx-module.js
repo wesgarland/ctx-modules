@@ -216,7 +216,7 @@ function CtxModule(ctx, cnId, moduleCache, parent)
       return moduleIdentifier;
     }
     
-    if (moduleIdentifier[0] === '/' || moduleIdentifier.match(/^[A-Z]:[\/\\]/)) // absolute paths
+    if (moduleIdentifier[0] === '/' || moduleIdentifier.match(/^[A-Za-z]:[\/\\]/)) // absolute paths
       moduleFilename = locateModuleFile(relativeResolve(moduleIdentifier));
     else
     {
